@@ -103,7 +103,7 @@ ProbeX can be trained on the generative splits of the Model-J dataset to classif
 Similar to the discriminative setting, ProbeX trains an individual model per layer. See `sbatch_run_generative_probex.sh` for an example of distributing the training across multiple GPUs.
 
 ```bash
-python train_generative_probex.py --input_path="~/.cache/huggingface/assets/ProbeX/ModelJ/default/models/SD_200" 
+python train_generative_probex.py --input_path="~/.cache/huggingface/assets/ProbeX/ModelJ/default/models/SD_200/" 
 --output_path="ProbeX_outputs/SD_200/results" --subset=SD_200 --start_layer=46 --n_layers=1
 ```
 
@@ -113,8 +113,8 @@ python train_generative_probex.py --input_path="~/.cache/huggingface/assets/Prob
 #### Downstream Tasks
 After training, the learned representations can be evaluated on downstream tasks using `downstream_generative.py`:
 ```bash
-python downstream_generative.py --task=all --input_path="~/.cache/huggingface/assets/ProbeX/ModelJ/models/SD_1k/" 
---checkpoint_path="./checkpoints/best_val_layer-46.safetensors" --subset=SD_1k --layer_idx=46
+python downstream_generative.py --task=all --input_path="~/.cache/huggingface/assets/ProbeX/ModelJ/default/models/SD_200/" 
+--checkpoint_path="<PATH_TO_CHECKPOINT>" --subset=SD_200 --layer_idx=46 
 ```
 Supported tasks: `occ` (one-class classification), `occ_ledoit`, `knn`, `retrieval`, `all`.
 
