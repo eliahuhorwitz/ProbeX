@@ -31,6 +31,34 @@ def imagenet_ids_to_class_names(labels):
     return labels_dict
 
 
+def get_class_ids_from_hf_dataset(subset, split):
+    from datasets import load_dataset
+    try:
+        ds = load_dataset("ProbeX/Model-J", subset, split=split)
+        return list(set(ds['imagenet_class_id']))
+    except Exception as e:
+        print(f"Warning: Could not load from HuggingFace: {e}")
+        return []
+
+
+def get_class_ids_from_directory(root_dir):
+    import os
+    from safetensors.torch import safe_open
+    class_ids = set()
+    for dirpath, dirnames, filenames in os.walk(root_dir):
+        for filename in filenames:
+            if filename == 'pytorch_lora_weights.safetensors':
+                filepath = os.path.join(dirpath, filename)
+                try:
+                    with safe_open(filepath, framework="pt", device="cpu") as f:
+                        metadata = f.metadata()
+                        if metadata and 'imagenet_class_id' in metadata:
+                            class_ids.add(metadata['imagenet_class_id'])
+                except:
+                    continue
+    return list(class_ids)
+
+
 CIFAR100_ALL_CLASSES = sorted(
     ['rabbit', 'plate', 'mountain', 'beetle', 'camel', 'lamp', 'orange', 'cockroach', 'snail', 'pear', 'streetcar', 'bicycle', 'tiger', 'porcupine', 'clock', 'train', 'cloud', 'apple', 'lion', 'crab',
      'girl', 'spider', 'table', 'turtle', 'pickup_truck', 'shark', 'mouse', 'caterpillar', 'chimpanzee', 'dolphin', 'bottle', 'whale', 'rose', 'palm_tree', 'hamster', 'lawn_mower', 'plain',

@@ -215,8 +215,5 @@ def main():
         print(f"Finished layer {args.current_layer} (layer name: {args.current_layer_name}), results saved to {results_path}")
 
 
-# TODO: Return the results as dict and not a million vars
-
-
 if __name__ == "__main__":
     main()

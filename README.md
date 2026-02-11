@@ -35,8 +35,10 @@ ___
 
 ## Project Structure
 This project consists of:
-- `download_dataset.py` - script for downloading the Model-J dataset from Hugging Face.
-- `train_discriminative_probex.py` - main file for training ProbeX on the discriminative splits of the Model-J dataset.
+- `download_datasets.py` - script for downloading the Model-J dataset from Hugging Face.
+- `train_discriminative_probex.py` - training ProbeX on the discriminative splits of the Model-J dataset.
+- `train_generative_probex.py` - training ProbeX on the generative (LoRA) splits using CLIP-based zero-shot classification.
+- `downstream_generative.py` - downstream evaluation tasks (OCC, kNN, retrieval) for generative models.
 
 
 
@@ -54,15 +56,19 @@ pip install -r requirements.txt
 ```
 
 ## Download the Model-J dataset
-The Model-J dataset contains different subsets of descriminative and generative models, to download a subset of models run:
+The Model-J dataset contains different subsets of discriminative and generative models, to download a subset of models run:
 ```bash
-python download_dataset.py --dataset_subset=SUBSET_NAME
+python download_datasets.py --dataset_subset=SUBSET_NAME
 ```
 Where `SUBSET_NAME` can be one of the following:
-"SupViT", "DINO", "MAE", "ResNet"
+- Discriminative: "SupViT", "DINO", "MAE", "ResNet"
+- Generative: "SD_1k", "SD_200"
 
-The models will be downloaded from Hugging Face and saved in the `.cache/huggingface/assets/ProbeX/ModelJ/default/models/` directory. Each of the subsets is about 350GB, so we recommend starting with a single subset.
+Each discriminative model is stored as a separate Hugging Face model repository. The generative models (SD_1k, SD_200) are each stored as a single Hugging Face model repository containing all LoRA weights. The download script handles both formats automatically, with built-in retry logic and resumable downloads — re-running the same command will skip already-downloaded files.
 
+Each of the discriminative subsets is about 350GB and each generative subset is about 70GB, so we recommend starting with a single subset.
+
+All model hyperparameters are available both as metadata inside each safetensor file and on the [Model-J dataset page](https://huggingface.co/datasets/ProbeX/Model-J).
 
 ## Running ProbeX
 Below are examples for running ProbeX on the Model-J dataset subsets.   
@@ -72,7 +78,7 @@ ProbeX can be trained on the discriminative splits of the Model-J dataset to pre
 ProbeX trains an individual model per layer, to choose the best layer we use the validation set. 
 The training script trains layers sequentially, the script supports specifying the start layer and the number of layers to train, allowing this to be distributed across multiple GPUs.
 
-Below is an example of training a single layer, see `sbatch_run_probex.sh` for an example of distributing the training of multiple layers across multiple GPUs.
+Below is an example of training a single layer, see `sbatch_run_discriminative_probex.sh` for an example of distributing the training of multiple layers across multiple GPUs.
 
 #### ViT
 ```bash
@@ -92,9 +98,25 @@ python train_discriminative_probex.py --input_path="~/.cache/huggingface/assets/
 > Different tasks will likely have different best layers. If trying to classify different attributes (e.g., augmentation use, specific biases, optimization parameters) you should experiment with **all** layers and choose the best ones. 
  
 ### Generative Splits
-Coming soon...
-#### Downstream tasks
-Coming soon...
+ProbeX can be trained on the generative splits of the Model-J dataset to classify LoRA models using CLIP-based zero-shot classification. The training is done using the `train_generative_probex.py` script.
+
+Similar to the discriminative setting, ProbeX trains an individual model per layer. See `sbatch_run_generative_probex.sh` for an example of distributing the training across multiple GPUs.
+
+```bash
+python train_generative_probex.py --input_path="~/.cache/huggingface/assets/ProbeX/ModelJ/default/models/SD_200" 
+--output_path="ProbeX_outputs/SD_200/results" --subset=SD_200 --start_layer=46 --n_layers=1
+```
+
+> [!TIP] 
+> Based on our findings, the best layer for classifying the training categories in the generative splits is layer **46**.
+
+#### Downstream Tasks
+After training, the learned representations can be evaluated on downstream tasks using `downstream_generative.py`:
+```bash
+python downstream_generative.py --task=all --input_path="~/.cache/huggingface/assets/ProbeX/ModelJ/models/SD_1k/" 
+--checkpoint_path="./checkpoints/best_val_layer-46.safetensors" --subset=SD_1k --layer_idx=46
+```
+Supported tasks: `occ` (one-class classification), `occ_ledoit`, `knn`, `retrieval`, `all`.
 
 ___
 
@@ -116,4 +138,5 @@ If you find this useful for your research, please use the following.
 ## Acknowledgments
 - The project makes extensive use of the different Hugging Face libraries (e.g. [Diffusers](https://huggingface.co/docs/diffusers/en/index), [PEFT](https://huggingface.co/docs/peft/en/index), [Transformers](https://huggingface.co/docs/transformers/en/index)).
 - The [Model-J dataset](https://huggingface.co/ProbeX) is hosted on Hugging Face.
+
 
